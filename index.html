@@ -570,46 +570,201 @@
 <section class="navigator" id="navigator">
   <div class="section-eyebrow">Resource Navigator</div>
   <h2 class="section-title">Find exactly what you need</h2>
-  <p class="section-sub">Every resource is Kenya-specific, vetted, and updated regularly. No pay-to-play: only genuinely good options make the list.</p>
-  <div class="nav-grid">
-    <a href="#contact" class="nav-card">
-      <div class="nav-icon">🏥</div>
-      <h3>Diagnosis & Specialists</h3>
-      <p>Paediatricians, neurologists, and psychologists in Nairobi who specialise in autism assessment. Know who to see and what questions to ask.</p>
-      <span class="nav-card-link">Find a specialist</span>
-    </a>
-    <a href="#contact" class="nav-card">
-      <div class="nav-icon">🏫</div>
-      <h3>Schools & Therapy</h3>
-      <p>Vetted integrated schools, ABA therapists, speech therapists, and occupational therapists across Nairobi, with honest parent reviews.</p>
-      <span class="nav-card-link">Find a school</span>
-    </a>
-    <a href="#contact" class="nav-card">
-      <div class="nav-icon">🥗</div>
-      <h3>Diet & Nutrition</h3>
-      <p>Autism-friendly nutrition guidance, sensory-safe foods, trusted suppliers in Kenya, and meal ideas that work for children on the spectrum.</p>
-      <span class="nav-card-link">Explore diet guides</span>
-    </a>
-    <a href="#contact" class="nav-card">
-      <div class="nav-icon">🧸</div>
-      <h3>Products & Tools</h3>
-      <p>Sensory toys, communication tools, behaviour support products, and equipment available in Kenya, reviewed by parents who have used them.</p>
-      <span class="nav-card-link">Browse products</span>
-    </a>
-    <a href="#contact" class="nav-card">
-      <div class="nav-icon">🤝</div>
-      <h3>Support Organisations</h3>
-      <p>Trusted NGOs, advocacy groups, and support organisations in Kenya working on autism awareness, inclusion, and family support.</p>
-      <span class="nav-card-link">Find support</span>
-    </a>
-    <a href="#community" class="nav-card">
-      <div class="nav-icon">💬</div>
-      <h3>Parent Community</h3>
-      <p>Connect with other Kenyan families navigating autism. A warm, honest, judgement-free WhatsApp community for parents who get it.</p>
-      <span class="nav-card-link">Join the community</span>
-    </a>
+  <p class="section-sub">Every resource is Kenya-specific and updated regularly. No pay-to-play: only genuinely good options make the list.</p>
+
+  <!-- SEARCH AND FILTER BAR -->
+  <div style="display:flex; gap:12px; flex-wrap:wrap; margin-bottom:32px;">
+    <input
+      type="text"
+      id="dir-search"
+      placeholder="Search by name, location or type..."
+      style="flex:1; min-width:200px; padding:12px 18px; border:1px solid var(--border); border-radius:30px; font-family:'Nunito',sans-serif; font-size:0.95rem; color:var(--text); outline:none;"
+      oninput="filterDirectory()"
+    />
+    <select
+      id="dir-filter"
+      style="padding:12px 18px; border:1px solid var(--border); border-radius:30px; font-family:'Nunito',sans-serif; font-size:0.95rem; color:var(--text); background:var(--white); cursor:pointer; outline:none;"
+      onchange="filterDirectory()"
+    >
+      <option value="">All Categories</option>
+      <option value="Diagnosis and Specialists">Diagnosis and Specialists</option>
+      <option value="Therapy">Therapy</option>
+      <option value="Schools">Schools</option>
+      <option value="Diet and Nutrition">Diet and Nutrition</option>
+      <option value="Products and Sensory">Products and Sensory</option>
+      <option value="Support Organisations">Support Organisations</option>
+    </select>
+  </div>
+
+  <!-- LOADING STATE -->
+  <div id="dir-loading" style="text-align:center; padding:60px 20px; color:var(--text-light);">
+    <div style="font-size:2rem; margin-bottom:12px;">🔍</div>
+    <p>Loading resources...</p>
+  </div>
+
+  <!-- ERROR STATE -->
+  <div id="dir-error" style="display:none; text-align:center; padding:60px 20px; color:var(--text-light);">
+    <div style="font-size:2rem; margin-bottom:12px;">⚠️</div>
+    <p>Could not load resources right now. Please try again later or <a href="#contact" style="color:var(--teal);">contact us</a> for help.</p>
+  </div>
+
+  <!-- RESULTS COUNT -->
+  <div id="dir-count" style="display:none; font-size:0.88rem; color:var(--text-light); margin-bottom:20px; font-weight:600;"></div>
+
+  <!-- DIRECTORY GRID -->
+  <div id="dir-grid" style="display:none; grid-template-columns:repeat(3,1fr); gap:20px;"></div>
+
+  <!-- NO RESULTS -->
+  <div id="dir-empty" style="display:none; text-align:center; padding:60px 20px; color:var(--text-light);">
+    <div style="font-size:2rem; margin-bottom:12px;">🌱</div>
+    <p>No resources found for that search. Try a different term or <a href="#contact" style="color:var(--teal);">suggest a resource</a>.</p>
   </div>
 </section>
+
+<style>
+  .dir-card {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+    transition: all 0.2s;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .dir-card:hover { border-color: var(--teal); box-shadow: var(--shadow); transform: translateY(-2px); }
+  .dir-cat-badge {
+    display: inline-block;
+    background: var(--teal-light);
+    color: var(--teal);
+    font-size: 0.72rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: 4px 10px;
+    border-radius: 20px;
+    margin-bottom: 4px;
+    width: fit-content;
+  }
+  .dir-card h3 { font-size: 1rem; font-weight: 800; color: var(--text); margin: 0; }
+  .dir-subcat { font-size: 0.82rem; color: var(--teal); font-weight: 700; }
+  .dir-location { font-size: 0.85rem; color: var(--text-light); display: flex; align-items: center; gap: 5px; }
+  .dir-notes { font-size: 0.85rem; color: var(--text-mid); line-height: 1.5; }
+  .dir-verified { display: inline-flex; align-items: center; gap: 5px; font-size: 0.78rem; font-weight: 700; padding: 3px 10px; border-radius: 20px; width: fit-content; margin-top: 4px; }
+  .dir-verified.yes { background: #E6F9EF; color: #1A7A4A; }
+  .dir-verified.no { background: #FEF3E0; color: #B97A00; }
+  .dir-actions { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+  .dir-btn { font-size: 0.82rem; font-weight: 700; padding: 7px 14px; border-radius: 20px; text-decoration: none; transition: all 0.2s; }
+  .dir-btn-phone { background: var(--teal-light); color: var(--teal); }
+  .dir-btn-phone:hover { background: var(--teal); color: white; }
+  .dir-btn-web { background: var(--amber-light); color: #8A5A00; }
+  .dir-btn-web:hover { background: var(--amber); color: var(--text); }
+  @media (max-width: 900px) { #dir-grid { grid-template-columns: 1fr !important; } }
+  @media (min-width: 600px) and (max-width: 900px) { #dir-grid { grid-template-columns: repeat(2,1fr) !important; } }
+</style>
+
+<script>
+  const SHEET_ID = '1G_8Ko57tewgx5w_GoPvynTe288oXlTgJb6v6crG6TI0';
+  const SHEET_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=Sheet1`;
+
+  let allResources = [];
+
+  const categoryIcons = {
+    'Diagnosis and Specialists': '🏥',
+    'Therapy': '🖐️',
+    'Schools': '🏫',
+    'Diet and Nutrition': '🥗',
+    'Products and Sensory': '🧸',
+    'Support Organisations': '🤝'
+  };
+
+  async function loadDirectory() {
+    try {
+      const res = await fetch(SHEET_URL);
+      const text = await res.text();
+      const json = JSON.parse(text.substring(47).slice(0, -2));
+      const rows = json.table.rows;
+
+      allResources = rows.map(row => ({
+        name:     row.c[0]?.v || '',
+        category: row.c[1]?.v || '',
+        subcat:   row.c[2]?.v || '',
+        location: row.c[3]?.v || '',
+        area:     row.c[4]?.v || '',
+        phone:    row.c[5]?.v || '',
+        website:  row.c[6]?.v || '',
+        notes:    row.c[7]?.v || '',
+        verified: row.c[8]?.v || 'No'
+      })).filter(r => r.name);
+
+      document.getElementById('dir-loading').style.display = 'none';
+      document.getElementById('dir-grid').style.display = 'grid';
+      document.getElementById('dir-count').style.display = 'block';
+      renderDirectory(allResources);
+    } catch(e) {
+      document.getElementById('dir-loading').style.display = 'none';
+      document.getElementById('dir-error').style.display = 'block';
+    }
+  }
+
+  function renderDirectory(resources) {
+    const grid = document.getElementById('dir-grid');
+    const count = document.getElementById('dir-count');
+    const empty = document.getElementById('dir-empty');
+
+    if (resources.length === 0) {
+      grid.style.display = 'none';
+      empty.style.display = 'block';
+      count.style.display = 'none';
+      return;
+    }
+
+    empty.style.display = 'none';
+    grid.style.display = 'grid';
+    count.style.display = 'block';
+    count.textContent = `Showing ${resources.length} resource${resources.length !== 1 ? 's' : ''}`;
+
+    grid.innerHTML = resources.map(r => {
+      const icon = categoryIcons[r.category] || '📋';
+      const phoneBtn = r.phone ? `<a href="tel:${r.phone}" class="dir-btn dir-btn-phone">📞 ${r.phone}</a>` : '';
+      const webBtn = r.website ? `<a href="${r.website.startsWith('http') ? r.website : 'https://' + r.website}" target="_blank" class="dir-btn dir-btn-web">🌐 Visit Website</a>` : '';
+      const isVerified = r.verified === 'Yes';
+
+      return `
+        <div class="dir-card">
+          <div class="dir-cat-badge">${icon} ${r.category}</div>
+          <h3>${r.name}</h3>
+          ${r.subcat ? `<div class="dir-subcat">${r.subcat}</div>` : ''}
+          ${r.location ? `<div class="dir-location">📍 ${r.location}${r.area ? ', ' + r.area : ''}</div>` : ''}
+          ${r.notes ? `<div class="dir-notes">${r.notes}</div>` : ''}
+          <div class="dir-verified ${isVerified ? 'yes' : 'no'}">
+            ${isVerified ? '✓ Verified by Nuru Circle' : '⏳ Pending verification'}
+          </div>
+          ${(phoneBtn || webBtn) ? `<div class="dir-actions">${phoneBtn}${webBtn}</div>` : ''}
+        </div>
+      `;
+    }).join('');
+  }
+
+  function filterDirectory() {
+    const search = document.getElementById('dir-search').value.toLowerCase();
+    const category = document.getElementById('dir-filter').value;
+
+    const filtered = allResources.filter(r => {
+      const matchesSearch = !search ||
+        r.name.toLowerCase().includes(search) ||
+        r.subcat.toLowerCase().includes(search) ||
+        r.location.toLowerCase().includes(search) ||
+        r.notes.toLowerCase().includes(search);
+      const matchesCategory = !category || r.category === category;
+      return matchesSearch && matchesCategory;
+    });
+
+    renderDirectory(filtered);
+  }
+
+  loadDirectory();
+</script>
 
 <!-- START HERE -->
 <section class="start-here" id="start-here">
